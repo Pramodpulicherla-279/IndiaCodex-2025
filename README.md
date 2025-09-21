@@ -1,6 +1,31 @@
-# AI-NFT-MINTING
+# 🤖 AI-NFT-MINTING
 
-📖 Digital Library with NFT-Signed Assets
+**Demo Video** : https://drive.google.com/file/d/1sHQOUx3cB1R_VgH_GCV-JeMDBn4LY9xN/view?usp=sharing
+
+**Repo Link** : https://github.com/Pramodpulicherla-279/IndiaCodex-2025/tree/mintopia
+
+
+**Prerequisites:**
+
+1. Lace wallet browser extension to be installed with a Nami preprod enabled.
+2. Test ADA to carry a mint transaction
+
+   
+**Steps to run the application (project)**
+
+1. npm install (in root directory)
+2. npm run dev (in root directory)
+
+**How to use:**
+
+1. Initially write the prompt less than 50 characters to generate the image.
+2. Click on generate button to generate the image.
+3. After, Image has been generated. connect the lace wallet by choosing the options from connect wallet button (white button above the generate image).
+4. Click on the MINT NFT button under the wallet details.
+5. After minting has been done.
+
+   
+📖** Digital Library with NFT-Signed Assets**
 
 PPT : https://docs.google.com/presentation/d/1hJSaLYlNNMWHZMSy8Z5qBeuTpsGLvexoQMZw3C36qTQ/edit?usp=sharing
 
