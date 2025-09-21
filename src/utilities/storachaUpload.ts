@@ -10,15 +10,29 @@ export async function uploadToStoracha(
   blob: Blob,
   fileName: string
 ): Promise<string> {
-  // Use the browser's native File class
   const file = new File([blob], fileName, { type: blob.type });
-
-  // Create the Storacha client (async)
   const client = await create();
+
+  // --- AUTHENTICATION STEP ---
+  // Only do this once per session/user!
+  // Replace with your actual email
+  const account = await client.login("your@email.com");
+  await account.plan.wait();
+
+  // Get all spaces
+  let spaces = await client.spaces();
+  let space = spaces[0];
+
+  // If no space, create one and wait for provisioning
+  if (!space) {
+    space = await client.createSpace("cardano-nft-space", { account });
+    await space.wait();
+  }
+
+  await client.setCurrentSpace(space.did());
 
   // Upload to IPFS via Storacha
   const cid = await client.uploadFile(file);
 
-  // Return short Cardano metadata-safe URL
   return `ipfs://${cid}/${fileName}`;
 }

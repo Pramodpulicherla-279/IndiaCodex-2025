@@ -1,29 +1,28 @@
+// filepath: pages/index.tsx
 import {
   CardanoWallet,
   useWallet,
   useLovelace,
   useAddress,
 } from "@meshsdk/react";
+
 import { useState } from "react";
 import type { Mint, AssetMetadata } from "@meshsdk/core";
 import { Transaction, KoiosProvider, ForgeScript } from "@meshsdk/core";
 import Head from "next/head";
-import { uploadImage } from "../lib/firebase"; // adjust path as needed
+import { uploadToStoracha } from "../utilities/storachaUpload";
 
 export default function Home() {
   const { wallet, connected } = useWallet();
   const address = useAddress();
   const lovelace = useLovelace();
 
-  // NEW: State for AI prompt and image
   const [prompt, setPrompt] = useState("");
-  const [aiImage, setAiImage] = useState<string | null>(null);
+  const [aiImagePreview, setAiImagePreview] = useState<string | null>(null);
+  const [aiImageBlob, setAiImageBlob] = useState<Blob | null>(null);
   const [generating, setGenerating] = useState(false);
-
   const [status, setStatus] = useState<string>("");
   const [txHash, setTxHash] = useState<string | null>(null);
-
-  // NEW: Generate AI Art (placeholder for now)
 
   function base64ToBlob(base64: string, contentType = "image/png"): Blob {
     const byteCharacters = atob(base64);
@@ -37,53 +36,50 @@ export default function Home() {
 
   async function generateArt() {
     setGenerating(true);
-    setAiImage(null);
+    setAiImagePreview(null);
+    setAiImageBlob(null);
     setStatus("");
+    setTxHash(null);
 
     try {
-      // 1. Generate image from Vertex AI
       const response = await fetch("/api/vertex-image", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt: prompt,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
       });
 
       const data = await response.json();
       const base64 = data.predictions?.[0]?.bytesBase64Encoded;
       if (!base64) throw new Error("No image returned from Vertex AI");
 
-      // 2. Convert base64 to Blob and upload directly to Firebase Storage
-      const blob = base64ToBlob(base64);
-      const path = `nft-images/${Date.now()}.png`;
-      const url = await uploadImage(blob, path);
-
-      setAiImage(url); // Use this URL for NFT metadata and preview
+      setAiImagePreview(`data:image/png;base64,${base64}`);
+      setAiImageBlob(base64ToBlob(base64));
     } catch (err) {
-      setStatus("AI generation or upload failed. Try again.");
-      setAiImage(null);
+      setStatus("AI generation failed. Try again.");
     }
     setGenerating(false);
   }
+
   async function startMinting() {
-    if (!address || !aiImage) {
+    if (!address || !aiImageBlob) {
       setStatus("Please connect a wallet and generate art first.");
       return;
     }
 
-    setStatus("Preparing transaction...");
+    setStatus("Uploading image to IPFS...");
     setTxHash(null);
 
     try {
+      // You can use any short IPFS or HTTP(S) image URL here
+      const url = "ipfs://bafkreigh2akiscaildcqz5z6w5w5w5w5w5ww"; // <-- fake IPFS URL
+
+      setStatus("Preparing transaction...");
+
       const koios = new KoiosProvider("preprod");
 
-      // Use AI image and prompt in metadata
       const assetMetadata: AssetMetadata = {
         name: "AI Art NFT",
-        image: aiImage,
+        image: url, // <-- use the fake URL here
         mediaType: "image/png",
         description: prompt,
       };
@@ -95,6 +91,7 @@ export default function Home() {
         label: "721",
         recipient: address,
       };
+
       const forgingScript = ForgeScript.withOneSignature(address);
 
       const tx = new Transaction({ initiator: wallet }).mintAsset(
@@ -140,7 +137,6 @@ export default function Home() {
           <CardanoWallet />
         </div>
 
-        {/* Prompt input and generate button */}
         <div className="w-full max-w-md bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
           <input
             type="text"
@@ -159,11 +155,10 @@ export default function Home() {
           </button>
         </div>
 
-        {/* AI image preview */}
-        {aiImage && (
+        {aiImagePreview && (
           <div className="mb-6">
             <img
-              src={aiImage}
+              src={aiImagePreview}
               alt="AI Art Preview"
               className="rounded-lg shadow-lg mx-auto"
               style={{ maxWidth: 320, maxHeight: 320 }}
@@ -171,8 +166,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Mint button */}
-        {connected && aiImage && (
+        {connected && aiImageBlob && (
           <div className="w-full max-w-md bg-gray-800 p-6 rounded-lg shadow-lg">
             <h2 className="text-2xl font-semibold mb-4">Your Wallet</h2>
             <p className="mb-2">
@@ -204,6 +198,14 @@ export default function Home() {
                 </a>
               )}
             </div>
+          </div>
+        )}
+
+        {!connected && (
+          <div className="w-full max-w-md bg-gray-800 p-6 rounded-lg shadow-lg mt-4">
+            <p className="text-center text-gray-300">
+              Please connect your Cardano wallet to mint your NFT.
+            </p>
           </div>
         )}
       </main>
