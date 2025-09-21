@@ -1,0 +1,134 @@
+import {
+  CardanoWallet,
+  useWallet,
+  useLovelace,
+  useAddress,
+} from "@meshsdk/react";
+import { useState } from "react";
+import type { Mint, AssetMetadata } from "@meshsdk/core";
+import { Transaction, KoiosProvider } from "@meshsdk/core";
+import Head from "next/head";
+import { ForgeScript } from "@meshsdk/core";
+export default function Home() {
+  const { wallet, connected } = useWallet();
+  const address = useAddress();
+  const lovelace = useLovelace();
+  const [status, setStatus] = useState<string>("");
+  const [txHash, setTxHash] = useState<string | null>(null);
+
+  async function startMinting() {
+    if (!address) {
+      setStatus("Please connect a wallet.");
+      return;
+    }
+
+    setStatus("Preparing transaction...");
+    setTxHash(null);
+
+    try {
+      const koios = new KoiosProvider("preprod");
+
+      // Define the asset metadata
+      const assetMetadata: AssetMetadata = {
+        name: "Mesh Hackathon NFT",
+        image: "ipfs://QmRzicpReutwCkM6aotuK2A8RxGsE4bdxPJa4RGGarB1zW",
+        mediaType: "image/png",
+        description: "This NFT was minted during a hackathon!",
+      };
+
+      // Define the asset to be minted
+      const asset: Mint = {
+        assetName: "MeshHackathonNFT",
+        assetQuantity: "1",
+        metadata: assetMetadata,
+        label: "721",
+        recipient: address,
+      };
+      const forgingScript = ForgeScript.withOneSignature(address);
+
+      const tx = new Transaction({ initiator: wallet }).mintAsset(
+        forgingScript,
+        asset
+      );
+
+      setStatus("Building transaction...");
+      const unsignedTx = await tx.build();
+
+      setStatus("Awaiting signature...");
+      const signedTx = await wallet.signTx(unsignedTx);
+
+      setStatus("Submitting transaction...");
+      const txHash = await wallet.submitTx(signedTx);
+
+      setTxHash(txHash);
+      setStatus(`Minting successful!`);
+
+      koios.onTxConfirmed(txHash, () => {
+        setStatus(`Transaction confirmed: ${txHash}`);
+      });
+    } catch (error) {
+      console.error(error);
+      setStatus("Minting failed. Check the console for details.");
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white font-mono">
+      <Head>
+        <title>NFT Minter</title>
+        <meta name="description" content="Cardano NFT Minter with Mesh" />
+      </Head>
+
+      <main className="flex flex-col items-center justify-center w-full flex-1 px-20 text-center">
+        <h1 className="text-5xl font-bold mb-4">
+          Cardano Hackathon NFT Minter
+        </h1>
+        <p className="text-xl mb-8">
+          Powered by{" "}
+          <a href="https://meshjs.dev/" className="text-sky-400">
+            Mesh
+          </a>
+        </p>
+
+        <div className="mb-8">
+          <CardanoWallet />
+        </div>
+
+        {connected && (
+          <div className="w-full max-w-md bg-gray-800 p-6 rounded-lg shadow-lg">
+            <h2 className="text-2xl font-semibold mb-4">Your Wallet</h2>
+            <p className="mb-2">
+              <span className="font-bold">Address:</span>{" "}
+              <span className="text-sm break-all">{address}</span>
+            </p>
+            <p className="mb-6">
+              <span className="font-bold">Balance:</span> {lovelace} Lovelace
+            </p>
+
+            <button
+              onClick={startMinting}
+              disabled={status.includes("...")}
+              className="w-full bg-sky-600 hover:bg-sky-700 disabled:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300"
+            >
+              {status.includes("...") ? status : "Mint My NFT"}
+            </button>
+
+            <div className="mt-4 text-center">
+              {status && <p className="text-gray-400">{status}</p>}
+              {txHash && (
+                <a
+                  href={`https://preprod.cardanoscan.io/transaction/${txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sky-400 hover:underline mt-2 block"
+                >
+                  View Transaction on Cardanoscan
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
