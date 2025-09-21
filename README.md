@@ -1,6 +1,8 @@
-# AI-NFT-MINTING
+# 🤖 AI-NFT-MINTING
 
 **Demo Video** : https://drive.google.com/file/d/1sHQOUx3cB1R_VgH_GCV-JeMDBn4LY9xN/view?usp=sharing
+
+**Repo Link** : https://github.com/Pramodpulicherla-279/IndiaCodex-2025/tree/mintopia
 
 
 **Prerequisites:**
